@@ -1,44 +1,44 @@
 // cognitium/src/components/AuthForm.tsx
-'use client'
+"use client";
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function AuthForm() {
-  const router = useRouter()
-  const supabase = createClientComponentClient()
-  const [loading, setLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const router = useRouter();
+  const supabase = createClientComponentClient();
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleGoogleSignIn = async () => {
-    setLoading(true)
-    setErrorMessage(null)
+    setLoading(true);
+    setErrorMessage(null);
 
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
-            access_type: 'offline',
-            prompt: 'consent'
-          }
-        }
-      })
-      
-      if (error) throw error
-      if (!data.url) throw new Error('No URL returned from Supabase')
-      
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+
+      if (error) throw error;
+      if (!data.url) throw new Error("No URL returned from Supabase");
+
       // Redirect to the OAuth provider's login page
-      window.location.href = data.url
-    } catch (error) {
-      setErrorMessage("Failed to sign in. Please try again.")
-      console.error('Auth Error:', error)
+      window.location.href = data.url;
+    } catch (error: any) {
+      setErrorMessage(error.message || "Failed to sign in. Please try again.");
+      console.error("Auth Error:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">
@@ -59,7 +59,9 @@ export default function AuthForm() {
             onClick={handleGoogleSignIn}
             disabled={loading}
             className={`w-full flex items-center justify-center px-4 py-2 border rounded-md shadow-sm text-sm font-medium ${
-              loading ? 'bg-gray-500 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'
+              loading
+                ? "bg-gray-500 cursor-not-allowed"
+                : "bg-white text-gray-700 hover:bg-gray-50"
             } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200`}
           >
             {loading ? (
@@ -91,5 +93,5 @@ export default function AuthForm() {
         </div>
       </div>
     </div>
-  )
+  );
 }
