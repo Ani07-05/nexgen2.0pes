@@ -22,6 +22,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const [translatedText, setTranslatedText] = useState("");
+  const [isTranslating, setIsTranslating] = useState(false);
 
   // Function to speak the text
   const speakText = (text: string) => {
@@ -122,6 +125,37 @@ export default function Dashboard() {
   if (!username) {
     return <LoadingSpinner />;
   }
+
+  const extractNonCodeText = (markdown: string) => {
+    return markdown.replace(/```[\s\S]*?```/g, ""); // Remove code blocks
+  };
+
+  const translateExplanation = async () => {
+    if (!explanation) return;
+
+    setIsTranslating(true);
+    setTranslatedText("");
+
+    const textToTranslate = extractNonCodeText(explanation);
+
+    try {
+      const response = await fetch(
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${selectedLanguage}&dt=t&q=${encodeURIComponent(
+          textToTranslate
+        )}`
+      );
+      const data = await response.json();
+
+      const translated = data[0].map((part: any[]) => part[0]).join(""); // Extract translated text
+
+      const finalTranslated = explanation.replace(textToTranslate, translated);
+      setTranslatedText(finalTranslated);
+    } catch (error) {
+      console.error("Translation error:", error);
+    }
+
+    setIsTranslating(false);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -258,16 +292,21 @@ export default function Dashboard() {
                     className?: string;
                     children?: React.ReactNode;
                   }) {
-                    return inline ? (
-                      <code className="bg-gray-900 text-yellow-300 px-1.5 py-0.5 rounded font-mono text-base">
-                        {children}
-                      </code>
-                    ) : (
-                      <pre className="bg-gray-900 text-yellow-300 p-4 rounded-lg overflow-x-auto font-mono text-base">
-                        <code {...props} className={className}>
+                    if (inline) {
+                      return (
+                        <code className="bg-gray-900 text-yellow-300 px-1.5 py-0.5 rounded font-mono text-base">
                           {children}
                         </code>
-                      </pre>
+                      );
+                    }
+                    return (
+                      <div className="w-full overflow-x-auto">
+                        <pre className="bg-gray-900 text-yellow-300 p-4 rounded-lg overflow-x-auto font-mono text-base">
+                          <code {...props} className={className}>
+                            {children}
+                          </code>
+                        </pre>
+                      </div>
                     );
                   },
                   ul({ children }) {
@@ -283,26 +322,36 @@ export default function Dashboard() {
                   },
                 }}
               >
-                {explanation}
+                {translatedText || explanation}
               </ReactMarkdown>
 
-              {/* Speaker Button */}
+              {/* Language selection */}
+              <div className="w-full mt-4">
+                <select
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-white transition-all duration-200"
+                >
+                  <option value="en">English</option>
+                  <option value="hi">Hindi</option>
+                  <option value="kn">Kannada</option>
+                </select>
+              </div>
+
+              {/* Translate Button */}
               <button
-                onClick={() => {
-                  if ("speechSynthesis" in window) {
-                    const utterance = new SpeechSynthesisUtterance(explanation);
-                    utterance.lang = "en-US";
-                    utterance.rate = 1;
-                    speechSynthesis.speak(utterance);
-                  } else {
-                    alert("Text-to-Speech is not supported in this browser.");
-                  }
-                }}
-                className="fixed bottom-6 right-6 p-4 bg-blue-500 rounded-full shadow-lg hover:bg-blue-600 transition-all duration-200"
-                aria-label="Read Explanation"
+                onClick={translateExplanation}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg mt-4 hover:bg-blue-600 transition-all"
+                disabled={isTranslating}
               >
-                🔊
+                {isTranslating
+                  ? "Translating..."
+                  : `Translate to ${
+                      selectedLanguage === "hi" ? "Hindi" : "Kannada"
+                    }`}
               </button>
+
+              {/* Speaker Button */}
               <button
                 onClick={() => speakText(explanation)}
                 className={`fixed bottom-6 right-6 p-4 rounded-full shadow-lg transition-all duration-200 ${
